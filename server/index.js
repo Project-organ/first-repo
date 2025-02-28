@@ -8,43 +8,35 @@ const socketIo = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
-// Настройка CORS с указанием источника
+// Налаштування CORS
 const corsOptions = {
-    origin: 'http://localhost:3000', // Разрешаем только фронтенду на localhost:3000
-    methods: ['GET', 'POST']
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'],
+    credentials: true
 };
-
-const io = socketIo(server, {
-    cors: {
-        origin: 'http://localhost:3000', // Разрешаем только этот источник
-        methods: ['GET', 'POST'],
-        allowedHeaders: ['Content-Type'],
-        credentials: true, // Разрешаем передавать куки и другие данные
-    }
-});
-
-
-app.use(cors(corsOptions)); // Применяем CORS для обычных API-запросов
+app.use(cors(corsOptions));
 app.use(express.json());
 
-// Роуты
-app.get('/start', (req, res) => {
-    res.send("API is running...");
-});
+// Налаштування Socket.IO
+const io = socketIo(server, { cors: corsOptions });
+
+// Монтуємо роутери
+app.use('/teacher', require('./routes/TeacherAuth')); // Шляхи: /teacher/register, /teacher/login
+app.use('/student', require('./routes/StudentAuth')); // Шляхи: /student/register, /student/login
 
 // Socket.IO
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
-
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
     });
 });
 
-// Подключение к MongoDB
+// Підключення до MongoDB
 const connectDB = async () => {
     try {
-        await mongoose.connect(process.env.MONGO_URI);
+        mongoose.connect(process.env.MONGO_URI);
         console.log('MongoDB connected');
     } catch (error) {
         console.error(error.message);
@@ -54,8 +46,7 @@ const connectDB = async () => {
 
 connectDB();
 
-// Запуск сервера
-const PORT = process.env.PORT || 5000; // Порт по умолчанию 5000
+const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
